@@ -31,18 +31,14 @@ rm fish1.jpg fish2.jpg
 # create a pull subscription
 ./s3-curl.sh PUT "/subscriptions/${SUBSCRIPTION}" "topic=${TOPIC}" 8001
 
-# sync zones
-bin/radosgw-admin period update --commit
-
 # pull the events
 ./s3-curl.sh GET "/subscriptions/${SUBSCRIPTION}" "events" 8001
 
 # run an HTTP server receiving POST requests in the background
-# for now it has to run on port 80 - hence the sudo
-sudo ./SimpleHTTPPostServer.py 80 > http-server.log &
+./SimpleHTTPPostServer.py 8080 >> http-server.log 2>&1 &
 
 # define push subscription
-./s3-curl.sh PUT "/subscriptions/sub2" "topic=${TOPIC}&push-endpoint=http://localhost/something/" 8001
+./s3-curl.sh PUT "/subscriptions/sub2" "topic=${TOPIC}&push-endpoint=http://localhost:8080/something/" 8001
 
 touch fish3.jpg
 
@@ -51,6 +47,6 @@ s3cmd put ./fish3.jpg s3://${BUCKET} --access_key=$SYSTEM_ACCESS_KEY --secret_ke
 
 rm fish3.jpg
 
-# cehck the http server
+# check the http server
 cat http-server.log
 
