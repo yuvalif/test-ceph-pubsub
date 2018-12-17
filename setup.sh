@@ -35,6 +35,8 @@ RGW_HOST=localhost
 # kill the 2 rados gataways
 pgrep radosgw | xargs kill
 
+sleep 1
+
 # rerun the main rgw with the regulat zone
 ./bin/radosgw -c ./ceph.conf --log-file=./out/radosgw.8000.log --admin-socket=./out/radosgw.8000.asok --pid-file=./out/radosgw.8000.pid \
     --debug-rgw=20 -n client.rgw --rgw_frontends="civetweb port=8000" --rgw-zone=us-east-1 --rgw-zonegroup=us
