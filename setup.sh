@@ -15,6 +15,8 @@ cd ${BUILD_DIR}
 
 # run the cluster with 2 RGWs
 # start new and clean old data, use filestore
+../src/stop.sh
+rm -rf ./out
 MON=1 OSD=1 MDS=0 MGR=0 RGW=2 ../src/vstart.sh -n -d -f
 
 # make sure to call 'source keys' first
@@ -33,24 +35,22 @@ RGW_HOST=localhost
 ./bin/radosgw-admin user create --uid=zone.user --display-name="Zone User" \
     --access-key=$SYSTEM_ACCESS_KEY --secret=$SYSTEM_SECRET_KEY --system
 
+# kill the 2 rados gataways
+pgrep radosgw | xargs kill
+
+sleep 1
+
+# rerun the main rgw with the regulat zone
+./bin/radosgw -c ./ceph.conf --log-file=./out/radosgw.8000.log --admin-socket=./out/radosgw.8000.asok --pid-file=./out/radosgw.8000.pid \
+    --debug-rgw=20 -n client.rgw --rgw_frontends="civetweb port=8000" --rgw-zone=us-east-1 --rgw-zonegroup=us
+
 # create another zone for notifications
 ./bin/radosgw-admin zone create --rgw-zonegroup=us --rgw-zone=us-east-pubsub --endpoints=http://${RGW_HOST}:8001 --tier-type=pubsub \
     --access-key=$SYSTEM_ACCESS_KEY --secret=$SYSTEM_SECRET_KEY
 
-sleep 2
-
-# kill the 2 rados gataways
-pgrep radosgw | xargs kill
-
-sleep 2
-
-# rerun the main rgw with the regulat zone
-./bin/radosgw -c ./ceph.conf --log-file=./out/radosgw.8000.log --admin-socket=./out/radosgw.8000.asok --pid-file=./out/radosgw.8000.pid \
-    --debug-rgw=20 -n client0.rgw --rgw_frontends="civetweb port=8000" --rgw-zone=us-east-1 --rgw-zonegroup=us
-
 # run another rgw in the pubsub zone
-./bin/radosgw -c ./ceph.conf --log-file=./out/radosgw.8000.log --admin-socket=./out/radosgw.8001.asok --pid-file=./out/radosgw.8001.pid \
-    --debug-rgw=20 -n client1.rgw --rgw_frontends="civetweb port=8001" --rgw-zone=us-east-pubsub --rgw-zonegroup=us
+./bin/radosgw -c ./ceph.conf --log-file=./out/radosgw.8001.log --admin-socket=./out/radosgw.8001.asok --pid-file=./out/radosgw.8001.pid \
+    --debug-rgw=20 --rgw_frontends="civetweb port=8001" --rgw-zone=us-east-pubsub --rgw-zonegroup=us
    
 # sync zones
 ./bin/radosgw-admin period update --commit
